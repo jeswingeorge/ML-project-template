@@ -8,6 +8,7 @@ from . import dispatcher
 
 # we will be taking the TRAINING_DATA and FOLD from environment variables (31:13) - defined in file run.sh
 TRAINING_DATA = os.environ.get("TRAINING_DATA")    # "input/train_folds.csv"
+TEST_DATA = os.environ.get("TEST_DATA") 
 FOLD = int(os.environ.get("FOLD"))
 MODEL = os.environ.get("MODEL") 
 
@@ -28,6 +29,7 @@ FOLD_MAPPING = {
 if __name__=="__main__":
     # read training data
     df = pd.read_csv(TRAINING_DATA)
+    df_test = pd.read_csv(TEST_DATA)
     train_df = df[df.kfold.isin(FOLD_MAPPING.get(FOLD))]
     valid_df = df[df.kfold == FOLD]
 
@@ -40,13 +42,13 @@ if __name__=="__main__":
     # to make sure order of variables in train and validating data are same
     valid_df = valid_df[train_df.columns]
 
-    label_encoders = []
+    label_encoders = {}
     for c in train_df.columns:
         lbl = preprocessing.LabelEncoder()
-        lbl.fit(train_df[c].values.tolist() + valid_df[c].values.tolist())
+        lbl.fit(train_df[c].values.tolist() + valid_df[c].values.tolist() + df_test[c].values.tolist())
         train_df.loc[:,c] = lbl.transform(train_df[c].values.tolist())
         valid_df.loc[:,c] = lbl.transform(valid_df[c].values.tolist())
-        label_encoders.append((c,lbl))
+        label_encoders[c] = lbl
 
 
     # data is ready to train
@@ -55,8 +57,9 @@ if __name__=="__main__":
     preds = clf.predict_proba(valid_df)[:,1]
     print(metrics.roc_auc_score(yvalid, preds))
     
-    joblib.dump(value = label_encoders, filename = f"models/{MODEL}_label_encoder.pkl")
-    joblib.dump(value = clf, filename = f"models/{MODEL}.pkl")
+    joblib.dump(value = label_encoders, filename = f"models/{MODEL}_{FOLD}_label_encoder.pkl")
+    joblib.dump(value = clf, filename = f"models/{MODEL}_{FOLD}.pkl")
+    joblib.dump(value = train_df.columns, filename = f"models/{MODEL}_{FOLD}_columns.pkl")
 
     
 

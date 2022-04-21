@@ -78,4 +78,6 @@ The pkl files created above will be available in the folder models.
 
 ![](images/5.PNG)
 
+This is how your final folder must look like.
 
+![](images/7.PNG)
